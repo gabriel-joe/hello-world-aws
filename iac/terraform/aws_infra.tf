@@ -64,6 +64,20 @@ resource "aws_vpc_security_group_ingress_rule" "allow_from_alb" {
   to_port     = 80
 }
 
+resource "aws_security_group" "postgresql_sg" {
+  name = "postgresql-security-group"
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_from_app" {
+  security_group_id = aws_security_group.postgresql_sg.id
+
+  referenced_security_group_id = aws_security_group.private_sg.id
+  from_port   = 5432
+  ip_protocol = "tcp"
+  to_port     = 5432
+}
+
 # Application Load Balancer
 resource "aws_lb" "app_lb" {
   name         = "${local.app_name}-lb"
@@ -97,6 +111,46 @@ resource "aws_ecs_cluster" "app_cluster" {
   name = "hello_world_cluster"
 }
 
+# IAM role for task definition
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecsTaskExecutionRole"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+  inline_policy {
+    name = "ecs-task-execution-policy"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchGetImage",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+  }
+}
+
 # ECS Task Definition
 resource "aws_ecs_task_definition" "app_task" {
   family = "hello-world-definition"
@@ -104,11 +158,13 @@ resource "aws_ecs_task_definition" "app_task" {
   cpu    = var.ecs_container_cpu
   memory = var.ecs_container_memory
   network_mode = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
       name      = "hello-world-aws"
-      image     = "${aws_ecr_repository.ecr_image_repository.repository_url}/${local.app_name}:latest"
+      image     = "${aws_ecr_repository.ecr_image_repository.repository_url}:latest"
       cpu       = 1
       memory    = 512
       essential = true
@@ -118,7 +174,22 @@ resource "aws_ecs_task_definition" "app_task" {
           hostPort      = 80
         }
       ]
-    },
+    }
+  ])
+}
+
+
+# ECS Task Definition
+resource "aws_ecs_task_definition" "postgresql" {
+  family = "postgresql"
+
+  cpu    = var.ecs_container_cpu
+  memory = var.ecs_container_memory
+  network_mode = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([
     {
       name      = "postgresql"
       image     = "postgresql"
@@ -127,8 +198,8 @@ resource "aws_ecs_task_definition" "app_task" {
       essential = true
       portMappings = [
         {
-          containerPort = 443
-          hostPort      = 443
+          containerPort = 5432
+          hostPort      = 5432
         }
       ]
     }
@@ -136,10 +207,11 @@ resource "aws_ecs_task_definition" "app_task" {
 }
 
 resource "aws_ecs_service" "app_service" {
-  name = "${local.app_name}-ecs"
+  name = "${local.app_name}"
   cluster = aws_ecs_cluster.app_cluster.arn
-
+  launch_type = "FARGATE"
   task_definition = aws_ecs_task_definition.app_task.arn
+  force_new_deployment = true
   network_configuration {
     subnets = [aws_subnet.subnet_b.id] #Private subnet
     security_groups = [aws_security_group.private_sg.id]
@@ -152,4 +224,19 @@ resource "aws_ecs_service" "app_service" {
     container_name    = local.app_name
     container_port    = 80  # Replace with your application port
   }
+
+}
+
+
+resource "aws_ecs_service" "postgresql" {
+  name = "postgreqsl-ecs"
+  cluster = aws_ecs_cluster.app_cluster.arn
+  launch_type = "FARGATE"
+  task_definition = aws_ecs_task_definition.postgresql.arn
+  network_configuration {
+    subnets = [aws_subnet.subnet_b.id] #Private subnet
+    security_groups = [aws_security_group.postgresql_sg.id]
+  }
+
+  desired_count = 2
 }

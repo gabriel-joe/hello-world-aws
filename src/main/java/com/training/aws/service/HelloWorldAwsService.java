@@ -3,33 +3,35 @@ package com.training.aws.service;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
-import com.training.aws.model.HelloWorldAwsModel;
+import com.training.aws.model.UserEntity;
+import com.training.aws.repository.HelloWorldAwsRepository;
 
 @Service
 public class HelloWorldAwsService {
 
-private static final InMemoryUserRepository userRepository = new InMemoryUserRepository();
-
+    private HelloWorldAwsRepository userRepository;
     
+    public HelloWorldAwsService(HelloWorldAwsRepository userRepository) {
+        this.userRepository = userRepository;
+    }
     public void saveOrUpdateUser(String username, String dateOfBirth) throws Exception {
         validateUsername(username);
         validateDateOfBirth(dateOfBirth);
-        userRepository.save(new HelloWorldAwsModel(username, LocalDate.parse(dateOfBirth)));
+        userRepository.save(new UserEntity(username, LocalDate.parse(dateOfBirth)));
     }
 
     
     public String getHelloBirthdayMessage(String username) throws Exception {
         validateUsername(username);
-        HelloWorldAwsModel user = userRepository.getUser(username);
+        Optional<UserEntity> user = userRepository.findById(username);
         LocalDate today = LocalDate.now();
-        long daysToBirthday = Period.between(today, user.getDateOfBirth()).getDays();
+        long daysToBirthday = Period.between(today, user.get().getDateOfBirth()).getDays();
         if (daysToBirthday == 0) {
             return "Hello, " + username + "! Happy birthday!";
         } else {
@@ -51,19 +53,4 @@ private static final InMemoryUserRepository userRepository = new InMemoryUserRep
             throw new ParseException("Date of Birth cannot be in the future", 0);
         }
     }
-}
-
-// This is a temporary in-memory user repository for demonstration purposes.
-// You'll need to implement a real data access layer for production.
-class InMemoryUserRepository {
-    private Map<String, HelloWorldAwsModel> users = new HashMap<>();
-
-    public void save(HelloWorldAwsModel user) {
-        users.put(user.getUsername(), user);
-    }
-
-    public HelloWorldAwsModel getUser(String username) {
-        return users.get(username);
-    }
-
 }

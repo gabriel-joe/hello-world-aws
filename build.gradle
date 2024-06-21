@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.0'
 	id 'io.spring.dependency-management' version '1.1.5'
+	id 'org.liquibase.gradle' version '2.2.0'
 }
 
 group = 'com.training.aws'
@@ -19,15 +20,21 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.projectlombok:lombok:1.18.32'
     // PostgreSQL Driver
     implementation 'org.postgresql:postgresql'
+	implementation 'com.h2database:h2:2.1.214'
+	implementation 'org.projectlombok:lombok:1.18.32'
     // Spring Data JPA (optional, for database access)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	liquibaseRuntime 'org.liquibase:liquibase-core:4.24.0'
+    liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:2.1.1'
+    liquibaseRuntime 'info.picocli:picocli:4.7.5'
+    liquibaseRuntime 'org.yaml:snakeyaml:1.33'
 }
+apply plugin: "org.liquibase.gradle"
 
 tasks.named('test') {
 	useJUnitPlatform()

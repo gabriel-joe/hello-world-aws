@@ -32,7 +32,7 @@ public class HelloWorldAwsController {
     public ResponseEntity<String> updateBirthday(@PathVariable String username, @Valid @RequestBody HelloWorldAwsRequest request) {
         try {
             helloWorldAwsService.saveOrUpdateUser(username, request.getDateOfBirth());
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         } catch (ParseException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
