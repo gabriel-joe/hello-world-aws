@@ -39,6 +39,11 @@ docker-compose up -d
 4. To run the application with the `default` profile, you'll need to configure the connection details. PostgreSQL environment variables are defined in the `compose.yaml` file. You can edit this file to adjust connection settings for your local PostgreSQL instance.
 
 **Note:** Refer to the application code for additional configuration options related to connecting to PostgreSQL.
+Also it is possible to run without build the docker container with the following command
+
+```bash
+./gradlew bootRun
+```
 
 
 ### Building and Deploying to AWS
