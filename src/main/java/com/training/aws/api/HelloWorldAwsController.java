@@ -1,6 +1,9 @@
 package com.training.aws.api;
 
 import java.text.ParseException;
+
+import javax.naming.NameNotFoundException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

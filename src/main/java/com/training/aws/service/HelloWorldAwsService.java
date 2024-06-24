@@ -3,9 +3,12 @@ package com.training.aws.service;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.naming.NameNotFoundException;
 
 import org.springframework.stereotype.Service;
 
@@ -30,13 +33,22 @@ public class HelloWorldAwsService {
     public String getHelloBirthdayMessage(String username) throws Exception {
         validateUsername(username);
         Optional<UserEntity> user = userRepository.findById(username);
-        LocalDate today = LocalDate.now();
-        long daysToBirthday = Period.between(today, user.get().getDateOfBirth()).getDays();
-        if (daysToBirthday == 0) {
-            return "Hello, " + username + "! Happy birthday!";
+        if(user.isPresent()) {
+            LocalDate today = LocalDate.now();
+            int birthYear = today.getYear();
+            if(user.get().getDateOfBirth().isBefore(today)) {
+                birthYear += 1;
+            }
+            long daysToBirthday = ChronoUnit.DAYS.between(LocalDate.now(), user.get().getDateOfBirth().withYear(birthYear));
+            if (daysToBirthday == 0) {
+                return "Hello, " + username + "! Happy birthday!";
+            } else {
+                return "Hello, " + username + "! Your birthday is in " + daysToBirthday + " day(s).";
+            }
         } else {
-            return "Hello, " + username + "! Your birthday is in " + daysToBirthday + " day(s)";
+            throw new NameNotFoundException("User not found!");
         }
+
     }
 
     private void validateUsername(String username) throws Exception {
