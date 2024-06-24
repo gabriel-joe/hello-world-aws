@@ -36,7 +36,7 @@ docker-compose up -d
 
   * http://localhost:8080/hello/{username}
 
-4. To run the application with the `postgresql` profile, you'll need to configure the connection details. PostgreSQL environment variables are defined in the `compose.yaml` file. You can edit this file to adjust connection settings for your local PostgreSQL instance.
+4. To run the application with the `default` profile, you'll need to configure the connection details. PostgreSQL environment variables are defined in the `compose.yaml` file. You can edit this file to adjust connection settings for your local PostgreSQL instance.
 
 **Note:** Refer to the application code for additional configuration options related to connecting to PostgreSQL.
 
@@ -78,6 +78,6 @@ This script utilizes Terraform to provision the following infrastructure on AWS:
 
 **Note:** This script assumes a basic Terraform configuration is already present in the `iac` directory. You'll need to customize it for your specific AWS environment, including VPC configuration, subnet placement, and security group rules.
 
+**Changes possible:** The build_and_push script builds the image and pushes to ecr with the tag "latest", to apply the best pratices it is necessary to have a unique tag for reliability purposes, that way it is better to keep track of image versions and deploy it in ECR
 
-
-
+To change the tag, you can change the variable inside the build_and_push script, as well as changing it in the terraform.tfvars file in order to deploy any version you already pushed.
